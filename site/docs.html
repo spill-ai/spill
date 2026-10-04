@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Spill documentation — client integration, Homebrew packaging, and acceptance testing.">
+  <title>Docs — Spill</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="spill-icon.png">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="index.html">
+      <img src="spill-icon.png" alt="Spill" width="22" height="22" style="border-radius: 5px;">
+      Spill
+    </a>
+    <div class="nav-links">
+      <a href="index.html#install">Install</a>
+      <a href="index.html#how-it-works">How it works</a>
+      <a href="docs.html" style="color: var(--text)">Docs</a>
+      <a href="https://github.com/spill-ai/spill" class="btn-sm">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="docs-layout">
+
+    <!-- ── Sidebar ── -->
+    <aside class="docs-sidebar">
+      <nav>
+        <div class="section-title">Clients</div>
+        <a href="#clients-overview">Overview</a>
+        <a href="#codex">Codex</a>
+        <a href="#claude">Claude Code</a>
+        <a href="#cursor">Cursor</a>
+        <a href="#acceptance">Acceptance check</a>
+
+        <div class="section-title">Packaging</div>
+        <a href="#homebrew">Homebrew tap</a>
+        <a href="#stable-builds">Stable builds</a>
+        <a href="#local-verify">Local verification</a>
+
+        <div class="section-title">Development</div>
+        <a href="#cursor-demo">Cursor demo</a>
+        <a href="#dev-commands">Dev commands</a>
+      </nav>
+    </aside>
+
+    <!-- ── Content ── -->
+    <main class="docs-content">
+
+      <h2 id="clients-overview">Client integration</h2>
+      <p>Install the client you use:</p>
+      <div class="code-block">
+        <div class="code-block-header"><span class="lang">bash</span></div>
+        <pre>spill install codex
+spill install claude
+spill install cursor</pre>
+      </div>
+      <p><code>claude-code</code> is accepted as an alias. These commands configure local CLI clients — not Claude Desktop. All clients share the same <code>~/.spill/spill.duckdb</code> database. Restart your client after installation and approve any MCP/hook trust prompts.</p>
+
+      <h3>Configuration ownership</h3>
+      <p>The installer backs up changed files and tracks ownership separately per client. It refuses conflicting entries and only removes entries it added during uninstall:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Client</th><th>MCP config</th><th>Hook config</th><th>Result replacement</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Cursor</td>
+              <td><code>~/.cursor/mcp.json</code></td>
+              <td><code>~/.cursor/hooks.json</code></td>
+              <td><code>postToolUse.updated_mcp_tool_output</code></td>
+            </tr>
+            <tr>
+              <td>Codex</td>
+              <td><code>~/.codex/config.toml</code></td>
+              <td><code>~/.codex/hooks.json</code></td>
+              <td><code>continue: false</code>, descriptor in <code>stopReason</code></td>
+            </tr>
+            <tr>
+              <td>Claude Code</td>
+              <td><code>~/.claude.json</code></td>
+              <td><code>~/.claude/settings.json</code></td>
+              <td><code>hookSpecificOutput.updatedMCPToolOutput</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="codex">Codex</h2>
+      <p>Codex registers <code>[mcp_servers.spill]</code> in <code>~/.codex/config.toml</code> and appends a matching hook group to <code>~/.codex/hooks.json</code>. Existing TOML comments and inline hook definitions remain intact.</p>
+      <p>Codex does <em>not</em> support <code>updatedMCPToolOutput</code>. The adapter uses <code>continue: false</code> with the dataset descriptor in <code>stopReason</code> — the model receives hook feedback in place of the raw result. This requires a Codex version implementing that PostToolUse behavior.</p>
+      <p><code>CODEX_HOME</code> overrides the config directory. Paths must be absolute. Install and uninstall using the same directory.</p>
+
+      <h2 id="claude">Claude Code</h2>
+      <p>Claude Code registers a user-scope <code>mcpServers.spill</code> in <code>~/.claude.json</code> and a PostToolUse hook in <code>~/.claude/settings.json</code>. Project-specific servers, permissions, and other settings remain intact.</p>
+      <p>The adapter uses <code>hookSpecificOutput.updatedMCPToolOutput</code> — this field works on versions predating the newer all-tool <code>updatedToolOutput</code>. If <code>CLAUDE_CONFIG_DIR</code> is set, the files are <code>&lt;dir&gt;/.claude.json</code> and <code>&lt;dir&gt;/settings.json</code>.</p>
+
+      <h2 id="cursor">Cursor</h2>
+      <p>Cursor registers the MCP server in <code>~/.cursor/mcp.json</code> and a PostToolUse hook in <code>~/.cursor/hooks.json</code> using the documented <a href="https://cursor.com/docs/hooks"><code>postToolUse</code> replacement contract</a>: <code>tool_output</code>, <code>tool_use_id</code>, the MCP matcher, and <code>updated_mcp_tool_output</code>.</p>
+
+      <h2 id="acceptance">Manual acceptance check</h2>
+      <p>The automated tests exercise the documented contract but cannot inspect the client's internal context assembly. This check confirms the original result is excluded from model context on your specific build.</p>
+      <ol>
+        <li>Build/install Spill and run the installer for your client.</li>
+        <li>Register the demo MCP fixture, substituting an absolute path:
+          <div class="code-block" style="margin-top: 10px;">
+            <div class="code-block-header"><span class="lang">bash</span></div>
+            <pre>codex mcp add spill-demo -- python3 /absolute/path/to/spill/scripts/demo_mcp.py
+<span class="cmt"># or:</span>
+claude mcp add --scope user spill-demo -- python3 /absolute/path/to/spill/scripts/demo_mcp.py</pre>
+          </div>
+        </li>
+        <li>Restart the client. Confirm Spill's <code>query</code>, <code>list</code>, and <code>describe</code> tools are available.</li>
+        <li>Ask it to call <code>spill-demo.list_issues</code> then count issues by state with Spill SQL.</li>
+        <li>Inspect the tool output — a compact descriptor with 2,000 rows should replace the full array. Expected counts: OPEN 1,000, CLOSED 1,000.</li>
+        <li>Confirm with <code>spill list</code>, <code>spill describe &lt;dataset&gt;</code>, and <code>spill sql 'SELECT count(*) FROM &lt;dataset&gt;'</code>.</li>
+        <li>Call <code>spill-demo.small_result</code> and confirm pass-through.</li>
+        <li>Run <code>spill uninstall cursor</code> (or your client) and confirm unrelated config is preserved.</li>
+        <li>Remove the demo server: <code>codex mcp remove spill-demo</code> or <code>claude mcp remove --scope user spill-demo</code>.</li>
+      </ol>
+
+      <h2 id="homebrew">Homebrew tap</h2>
+      <p>This repository doubles as a custom Homebrew tap through its <code>Formula/</code> directory. No separate tap repo is needed:</p>
+      <div class="code-block">
+        <div class="code-block-header"><span class="lang">bash</span></div>
+        <pre>brew tap spill-ai/spill https://github.com/spill-ai/spill
+brew trust --formula spill-ai/spill/spill  <span class="cmt"># Homebrew 6+ only</span>
+brew install spill
+spill install cursor</pre>
+      </div>
+      <p>A bare <code>brew install spill</code> without the tap requires a future submission to <code>homebrew/core</code>. The explicit URL is necessary because Homebrew's default shorthand would look for <code>spill-ai/homebrew-spill</code>.</p>
+
+      <h2 id="stable-builds">Stable builds</h2>
+      <p><code>Formula/spill.rb</code> pins a tagged release tarball and SHA256. Homebrew builds with <code>cargo install --locked</code>, including bundled DuckDB. There are no prebuilt bottles yet.</p>
+      <p>To publish an update:</p>
+      <ol>
+        <li>Run formatting, Clippy, Rust tests, and <code>scripts/smoke.py</code>.</li>
+        <li>Update <code>Cargo.toml</code> version and commit.</li>
+        <li>Tag the release: <code>git tag v0.2.0 &lt;sha&gt; &amp;&amp; git push origin v0.2.0</code></li>
+        <li>Get the tarball SHA: <code>curl -sL https://github.com/spill-ai/spill/archive/refs/tags/v0.2.0.tar.gz | shasum -a 256</code></li>
+        <li>Update <code>url</code>, <code>sha256</code>, and <code>version</code> in <code>Formula/spill.rb</code>.</li>
+        <li>Commit the formula change and push. Users run <code>brew update &amp;&amp; brew upgrade spill</code>.</li>
+      </ol>
+
+      <h2 id="local-verify">Local verification</h2>
+      <div class="code-block">
+        <div class="code-block-header"><span class="lang">bash</span></div>
+        <pre>brew tap spill-ai/spill https://github.com/spill-ai/spill
+brew install --build-from-source spill-ai/spill/spill
+brew test spill-ai/spill/spill</pre>
+      </div>
+      <p>The formula test uses Homebrew's temporary test home. It checks installation, spilling a large result, SQL access to saved rows, and uninstall. It does not modify your actual client configuration.</p>
+
+      <h2 id="cursor-demo">Cursor acceptance demo</h2>
+      <p>This manual check is required to confirm the original result stays out of model context — automated tests exercise the documented contract but cannot inspect Cursor's context assembly.</p>
+      <ol>
+        <li>Build with <code>cargo install --path .</code>, then run <code>spill install cursor</code>.</li>
+        <li>Add the demo server to <code>~/.cursor/mcp.json</code>:
+          <div class="code-block" style="margin-top: 10px;">
+            <div class="code-block-header"><span class="lang">json</span></div>
+            <pre>{
+  "mcpServers": {
+    "spill-demo": {
+      "command": "python3",
+      "args": ["/absolute/path/to/spill/scripts/demo_mcp.py"]
+    }
+  }
+}</pre>
+          </div>
+        </li>
+        <li>In Cursor, verify both <code>spill</code> and <code>spill-demo</code> are connected.</li>
+        <li>Ask: <em>"Use spill-demo list_issues, then count issues by state using Spill SQL."</em></li>
+        <li>Inspect tool output — it should contain a dataset descriptor, not 2,000 raw objects. Expected aggregate: OPEN 1,000, CLOSED 1,000.</li>
+        <li>Run <code>spill list</code>, <code>spill describe &lt;dataset&gt;</code>, and the count query in a terminal.</li>
+        <li>Ask Cursor to call <code>spill-demo small_result</code> — the single object should pass through unchanged.</li>
+        <li>Run <code>spill uninstall cursor</code> and confirm unrelated servers and hooks are preserved.</li>
+        <li>Remove the demo entry from <code>~/.cursor/mcp.json</code>.</li>
+      </ol>
+
+      <h2 id="dev-commands">Development commands</h2>
+      <div class="code-block">
+        <div class="code-block-header"><span class="lang">bash</span></div>
+        <pre>cargo fmt --all -- --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+cargo build
+python3 scripts/smoke.py target/debug/spill</pre>
+      </div>
+      <p>CI runs on Linux and macOS. The smoke test exercises the real binary, stdio MCP transport, and hook path in a temporary directory without touching your actual client configuration.</p>
+
+    </main>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/spill-ai/spill">GitHub</a> ·
+      <a href="index.html">Home</a> ·
+      Apache-2.0 licensed
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -29,6 +29,3 @@ rustc-ice-*.txt
 .DS_Store
 __pycache__/
 *.pyc
-
-# mdBook generated output
-book/

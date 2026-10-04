@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Spill automatically turns oversized MCP tool results into local DuckDB tables so AI agents can query them instead of loading everything into context.">
+  <title>Spill — Keep large MCP results out of context</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="spill-icon.png">
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-logo" href="#">
+      <img src="spill-icon.png" alt="Spill" width="22" height="22" style="border-radius: 5px;">
+      Spill
+    </a>
+    <div class="nav-links">
+      <a href="#install">Install</a>
+      <a href="#how-it-works">How it works</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/spill-ai/spill" class="btn-sm">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow">Open source · Apache-2.0</div>
+    <h1>Keep large MCP results<br><span>out of context</span></h1>
+    <p class="sub">
+      Spill intercepts oversized MCP tool responses and stores them as local
+      DuckDB tables. Your AI agent gets a compact descriptor and runs SQL
+      instead of reading 50,000 tokens of raw JSON.
+    </p>
+    <div class="hero-actions">
+      <a href="#install" class="btn btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install
+      </a>
+      <a href="docs.html" class="btn btn-outline">Documentation</a>
+      <a href="https://github.com/spill-ai/spill" class="btn btn-outline">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub
+      </a>
+    </div>
+
+    <div class="diagram">
+      <div><span class="hi">GitHub MCP</span> <span class="arr">→</span> 18,412 issues <span class="arr">→</span> <span class="hi2">Spill</span> <span class="arr">→</span> DuckDB table <span class="arr">→</span> compact descriptor</div>
+      <div style="padding-left: 280px; color: var(--border)">↑</div>
+      <div style="padding-left: 232px"><span class="hi">spill.query</span>(<span class="str">'SELECT state, COUNT(*) GROUP BY state'</span>)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ──────────────────────────────────────────────────────────────── -->
+<section id="features">
+  <div class="container">
+    <div class="label">Why Spill</div>
+    <h2>Everything stays local, nothing changes in your workflow</h2>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <h3>Automatic interception</h3>
+        <p>Hook fires on every MCP PostToolUse event. Payloads under 32 KiB pass through untouched.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🗄️</div>
+        <h3>Local DuckDB storage</h3>
+        <p>Rows land in <code>~/.spill/spill.duckdb</code>. No cloud account, no embeddings, no infrastructure.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔍</div>
+        <h3>SQL over any result</h3>
+        <p>Filter, aggregate, join. DuckDB runs read-only with external access disabled.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔒</div>
+        <h3>Read-only by design</h3>
+        <p>Keyword validator + connection-level read-only mode. Mutations are blocked at two layers.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🔌</div>
+        <h3>Three clients</h3>
+        <p>Cursor, Codex, and Claude Code. One install command per client, fully reversible.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">📦</div>
+        <h3>Homebrew tap</h3>
+        <p>One-line install. No separate tap repo needed — this repo doubles as the tap.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Install ───────────────────────────────────────────────────────────────── -->
+<section id="install">
+  <div class="container">
+    <div class="label">Installation</div>
+    <h2>Up and running in two commands</h2>
+    <p>Homebrew builds Spill from source with embedded DuckDB. The first build takes a few minutes; upgrades are instant.</p>
+
+    <div class="install-block" style="margin-top: 32px;">
+      <div class="install-block-header">
+        <div class="dots"><span></span><span></span><span></span></div>
+        <span>Terminal</span>
+        <button class="copy-btn" onclick="copyInstall(this)">Copy</button>
+      </div>
+      <pre id="install-cmds"><span class="prompt">$ </span><span class="cmd">brew tap spill-ai/spill https://github.com/spill-ai/spill</span>
+<span class="prompt">$ </span><span class="cmd">brew trust --formula spill-ai/spill/spill</span>
+<span class="prompt">$ </span><span class="cmd">brew install spill</span>
+<span class="prompt">$ </span><span class="cmd">spill install cursor</span>   <span class="comment"># or: codex  claude</span></pre>
+    </div>
+
+    <p style="margin-top: 16px; font-size: 0.875rem;">
+      Restart your client after install to load the MCP server and hooks.
+      Use <code>spill uninstall cursor</code> to remove — unrelated config is never touched.
+    </p>
+
+    <div class="table-wrap" style="margin-top: 40px;">
+      <table>
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>MCP config</th>
+            <th>Hook config</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cursor</td>
+            <td><code>~/.cursor/mcp.json</code></td>
+            <td><code>~/.cursor/hooks.json</code></td>
+          </tr>
+          <tr>
+            <td>Codex</td>
+            <td><code>~/.codex/config.toml</code></td>
+            <td><code>~/.codex/hooks.json</code></td>
+          </tr>
+          <tr>
+            <td>Claude Code</td>
+            <td><code>~/.claude.json</code></td>
+            <td><code>~/.claude/settings.json</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ──────────────────────────────────────────────────────────── -->
+<section id="how-it-works">
+  <div class="container">
+    <div class="label">How it works</div>
+    <h2>What gets spilled</h2>
+    <p>
+      Serialized tool output must be at least <strong style="color:var(--text)">32 KiB</strong> and contain a
+      nonempty array of JSON objects. Three payload shapes are supported:
+    </p>
+    <div class="pills" style="margin: 20px 0 28px;">
+      <div class="pill"><div class="pill-dot"></div> Direct JSON array</div>
+      <div class="pill"><div class="pill-dot"></div> MCP text block containing a JSON array</div>
+      <div class="pill"><div class="pill-dot"></div> <code>structuredContent</code> array</div>
+      <div class="pill"><div class="pill-dot red"></div> Errors — pass through</div>
+      <div class="pill"><div class="pill-dot red"></div> Binary / mixed blocks — pass through</div>
+      <div class="pill"><div class="pill-dot red"></div> Under 32 KiB — pass through</div>
+    </div>
+
+    <p>Columns are inferred as <code>BOOLEAN</code>, <code>BIGINT</code>, <code>DOUBLE</code>, or <code>VARCHAR</code>. Nested objects, arrays, and mixed types are stored as JSON text. Missing values become SQL NULL.</p>
+
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">sql</span> Query your data</div>
+      <pre><span class="cmt">-- Agent receives a compact descriptor, then queries directly</span>
+<span class="kw">SELECT</span> state, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> n
+<span class="kw">FROM</span>  spill_list_issues_a81f32
+<span class="kw">GROUP BY</span> state
+<span class="kw">ORDER BY</span> n <span class="kw">DESC</span>;</pre>
+    </div>
+
+    <h2 style="margin-top: 48px;">Query policy</h2>
+    <p>
+      Only <code>SELECT</code>, <code>WITH</code>, <code>SHOW</code>, <code>DESCRIBE</code>, and <code>EXPLAIN</code> are allowed.
+      A SQL tokenizer rejects mutations, multiple statements, and semicolons mid-query.
+      Independently, DuckDB opens in <strong style="color:var(--text)">read-only mode</strong> with external access and
+      extension loading disabled.
+    </p>
+    <div class="pills" style="margin-top: 20px;">
+      <div class="pill"><div class="pill-dot"></div> 500 row cap</div>
+      <div class="pill"><div class="pill-dot"></div> 32 KiB output cap</div>
+      <div class="pill"><div class="pill-dot"></div> No network calls at runtime</div>
+      <div class="pill"><div class="pill-dot"></div> No daemon or background service</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Commands ──────────────────────────────────────────────────────────────── -->
+<section id="commands">
+  <div class="container">
+    <div class="label">CLI Reference</div>
+    <h2>Commands</h2>
+
+    <div class="code-block">
+      <div class="code-block-header"><span class="lang">bash</span></div>
+      <pre><span class="cmt"># Dataset management</span>
+spill list
+spill describe spill_list_issues_a81f32
+spill sql <span class="str">'SELECT state, count(*) FROM spill_list_issues_a81f32 GROUP BY state'</span>
+
+<span class="cmt"># Hook and MCP server (normally launched by the client)</span>
+spill hook cursor    <span class="cmt"># also: codex, claude — reads one JSON event from stdin</span>
+spill mcp            <span class="cmt"># stdio MCP server</span>
+
+<span class="cmt"># Install / uninstall</span>
+spill install cursor
+spill uninstall cursor</pre>
+    </div>
+
+    <p style="margin-top: 8px;">
+      The MCP server exposes <code>query</code>, <code>list</code>, and <code>describe</code>.
+      Query responses have <code>columns</code> and <code>rows</code> in column order.
+      <a href="docs.html">Full documentation →</a>
+    </p>
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────────────────── -->
+<footer>
+  <div class="container">
+    <p>
+      <a href="https://github.com/spill-ai/spill">GitHub</a> ·
+      <a href="docs.html">Docs</a> ·
+      Apache-2.0 licensed
+    </p>
+  </div>
+</footer>
+
+<script>
+function copyInstall(btn) {
+  const lines = ['brew tap spill-ai/spill https://github.com/spill-ai/spill', 'brew trust --formula spill-ai/spill/spill', 'brew install spill', 'spill install cursor'];
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+</script>
+</body>
+</html>
